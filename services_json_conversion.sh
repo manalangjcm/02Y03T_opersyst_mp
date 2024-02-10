@@ -11,8 +11,7 @@
 
 server_password="admin"
 
-#current_date=`date '+%Y%m%d_%H%M%S'`
-current_date="20240210_123606"
+current_date=`date '+%Y%m%d_%H%M%S'`
 
 # File Names
 file_name_pattern="services_*"
@@ -38,10 +37,6 @@ function InsertToFile()
 
 function ConvertJSON()
 {
-	# Debug
-	truncate -s 0 "$file_name_active"
-	truncate -s 0 "$file_name_inactive"
-	
 	running_length=$(jq '.services_state_running | length' <<< "$converted_json_file")
 	exited_length=$(jq '.services_state_exited | length' <<< "$converted_json_file")
 	failed_length=$(jq '.services_state_failed | length' <<< "$converted_json_file")
@@ -61,11 +56,6 @@ function ConvertService()
 	local file_directory
     local file_name
 	local file_text_format
-	
-	# Check if directory exists, create if not
-    if [[ ! -d $file_directory ]]; then
-        mkdir -p "$file_directory"
-    fi
 	
 	for ((index=0; index<service_length; index++)); do
         current_service=$(jq -r ".services_state_${service_to_convert}[$index].service" <<< "$converted_json_file")
@@ -89,11 +79,14 @@ function ConvertService()
 				file_text_format="$current_service,$current_description,dead,inactive"
 				;;
 		esac
+		
+		# If directory does not exist, create one
+		if [[ ! -d $file_directory ]]; then
+			mkdir "$file_directory"
+		fi
 
-        # Write to file
-        InsertToFile "$file_text_format" "$file_name"
+        InsertToFile "$file_text_format" "$file_directory$file_name"
 
-        # Output message
         echo -e "[#] $current_status service: $current_service\n ► Saved to '$file_directory$file_name'\n"
     done
 }
@@ -110,8 +103,7 @@ function Main()
 
 	# Check if a latest systemctl services JSON file can be found under /opt/services/
 	if [ -n "$(ls -A "$services_directory"/$file_name_pattern 2>/dev/null)" ]; then
-		#file_latest=$(ls -t1 "$services_directory"/$file_name_pattern | head -n 1)
-		file_latest="test.json"
+		file_latest=$(ls -t1 "$services_directory"/$file_name_pattern | head -n 1)
 		converted_json_file=$(<$file_latest)
 		
 		echo "Latest JSON file found '$file_latest'"
