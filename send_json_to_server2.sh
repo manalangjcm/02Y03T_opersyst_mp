@@ -9,6 +9,8 @@
 # VARIABLES
 #==========================================================#
 
+current_date=`date '+%Y%m%d_%H%M%S'`
+
 username_server02="admin"
 ip_server02="192.168.47.132"
 password_server02="admin"
@@ -24,18 +26,37 @@ file_destination="/opt/filesystem"
 # SCRIPT CONTENT
 #==========================================================#
 
+function PrintMessage()
+{
+	local message=$1
+	local log_mode=$2
+	
+	local log_level
+	
+	case $log_mode in
+		0)
+			log_level="INFO"
+			;;
+		1)
+			log_level="ERROR"
+			;;
+	esac
+	
+	echo -e "[`date '+%Y-%m-%d %H:%M:%S'`] [$log_level] : $message"
+}
+
 function CheckServerStatus()
 {
 	local username=$1
 	local ip_address=$2
 	local password=$3
 	
-	echo "Checking for server status: $username $ip_address ..."
+	PrintMessage "Checking for server status '$username $ip_address'..." 0
 	
-	if sshpass -p $password ssh -q "$username@$ip_address" exit; then
-		echo "Server is active!"
+	if ssh -q "$username@$ip_address" exit; then
+		PrintMessage "Server is active!" 0
 	else
-		echo "Server is not active! Terminating script..."
+		PrintMessage "Server is not active! Terminating script..." 1
 		exit
 	fi
 }
@@ -45,9 +66,9 @@ function CheckJSONFile()
 	if [ -n "$(ls -A "$tmp_directory"/$file_name_pattern 2>/dev/null)" ]; then
 		file_latest=$(ls -t1 "$tmp_directory"/$file_name_pattern | head -n 1)
 		
-		echo "Latest JSON file found '$file_latest'"
+		PrintMessage "Latest JSON file found '$file_latest'" 0
 	else
-		echo "JSON file not found under '/tmp'!"
+		PrintMessage "JSON file not found under '/tmp'!" 1
 		exit
 	fi
 }
@@ -58,20 +79,22 @@ function TransferToRemoteServer()
 	local ip_address=$2
 	local password=$3
 	
-	if sshpass -p $password ssh admin@$ip_address "ls $file_destination >/dev/null 2>&1" ; then
-		sshpass -p $password ssh admin@$ip_address "echo $password | sudo -S chown -R $username:$username $file_destination"
+	if ssh admin@$ip_address "ls $file_destination >/dev/null 2>&1" ; then
+		PrintMessage "Password for 'sudo' command is not required. Ignore this message!" 0
+		ssh admin@$ip_address "echo $password | sudo -S -n chown -R $username:$username $file_destination"
 	else
-		echo "Not existing! Creating one..."
-		sshpass -p $password ssh admin@$ip_address "echo $password | sudo -S mkdir $file_destination"
-		sshpass -p $password ssh admin@$ip_address "echo $password | sudo -S chown -R $username:$username /opt/"
+		PrintMessage "Not existing! Creating one..." 0
+		PrintMessage "Password for 'sudo' command is not required. Ignore this message!" 0
+		ssh admin@$ip_address "echo $password | sudo -S -n mkdir $file_destination"
+		ssh admin@$ip_address "echo $password | sudo -S -n chown -R $username:$username /opt/"
 	fi
 	
-	sshpass -p $password_server02 sftp admin@$ip_address << @
+	sftp admin@$ip_address << @
 		put -R $file_latest $file_destination
 		quit
 @
 
-	echo "Successfully transferred '$file_latest' to server $username@$ip_address (Server 02)"
+	PrintMessage "Successfully transferred '$file_latest' to server '$username@$ip_address (Server 02)'" 0
 }
 
 function RemoveJSONFile()
@@ -82,24 +105,28 @@ function RemoveJSONFile()
 	# Check if a latest filesystem utilization JSON file can be found under /tmp/
 	if [ ! -z $file_to_remove ]; then
 		rm $file_to_remove
-		echo "Removed JSON file '$file_to_remove' under '$file_destination'"
+		PrintMessage "Successfully removed JSON file '$file_to_remove' under '$file_destination'" 0
 	else
-		echo "No JSON file found under directory '$file_destination"
+		PrintMessage "No JSON file found under directory '$file_destination" 1
 	fi
 }
 
 function Main()
 {
-	CheckServerStatus $username_server02 $ip_server02 $password_server02
-	CheckJSONFile
-	TransferToRemoteServer $username_server02 $ip_server02 $password_server02
-	RemoveJSONFile $file_latest $tmp_directory
+	file_name_log="send_json_to_server2_${current_date}.log"
+	
+	{
+		CheckServerStatus $username_server02 $ip_server02
+		CheckJSONFile
+		TransferToRemoteServer $username_server02 $ip_server02 $password_server02
+		RemoveJSONFile $file_latest $tmp_directory
+	} 2>&1 | tee -a "$file_name_log"
 }
 
 #==========================================================#
 # RUNTIME FUNCTIONS
 #==========================================================#
 
-Main
+Main	
 
 #==========================================================#
