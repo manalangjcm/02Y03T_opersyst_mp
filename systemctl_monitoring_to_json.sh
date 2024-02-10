@@ -24,6 +24,25 @@ systemctl_main_command="systemctl"
 # SCRIPT CONTENT	
 #==========================================================#
 
+function PrintMessage()
+{
+	local message=$1
+	local log_mode=$2
+	
+	local log_level
+	
+	case $log_mode in
+		0)
+			log_level="INFO"
+			;;
+		1)
+			log_level="ERROR"
+			;;
+	esac
+	
+	echo -e "[`date '+%Y-%m-%d %H:%M:%S'`] [$log_level] : $message"
+}
+
 function InsertToFile()
 {
 	local value_to_insert=$1
@@ -34,7 +53,9 @@ function InsertToFile()
 
 function GenerateSystemCtl()
 {	
-	systemctl_command=$(systemctl list-units --all --no-pager --plain)
+	systemctl_command=$(systemctl list-units --all --no-pager --plain | grep -E "running|exited|failed|dead")
+	
+	PrintMessage "Converting systemctl to JSON..." 0
 	
 	running_array=()
 	exited_array=()
@@ -54,21 +75,19 @@ function GenerateSystemCtl()
 		case $service_state in
 			"running")
 				running_array+=("$json_object")
-				echo "RUNNING: $json_object"
 				;;
 			"exited")
 				exited_array+=("$json_object")
-				echo "EXITED: $json_object"
 				;;
 			"failed")
 				failed_array+=("$json_object")
-				echo "FAILED: $json_object"
 				;;
 			"dead")
 				dead_array+=("$json_object")
-				echo "DEAD: $json_object"
 				;;
 		esac
+		
+		PrintMessage "Successfully parsed: Service '$service_name' | Status: '$service_status'" 0
 		
 	done < <(echo "$systemctl_command")
 	
@@ -78,10 +97,8 @@ function GenerateSystemCtl()
 	final_dead_array=$(echo "${dead_array[@]}" | sed 's/,\([^,]*\)$/\1/')
 	
 	combined_json=$(echo "{\"services_state_running\":[${final_running_array[@]}],\"services_state_exited\":[${final_exited_array[@]}], \"services_state_failed\":[${final_failed_array[@]}], \"services_state_dead\":[${final_dead_array[@]}]}" | jq '.')
-
-	echo "Converting filesystem utilization to JSON..."
-	echo "$combined_json" > test.json
-	#ConvertToJSON "$combined_json"
+	
+	ConvertToJSON "$combined_json"
 }
 
 function ConvertToJSON()
@@ -89,19 +106,24 @@ function ConvertToJSON()
 	local value_to_convert=$1
 	
 	InsertToFile "$value_to_convert" $file_directory$file_name
-	echo -e "Successfully converted filesystem utilization to JSON!\n ► Filename: $file_name\n ► File directory: $file_directory"
+	
+	PrintMessage "Successfully converted systemctl to JSON!\n ► Filename: $file_name\n ► File directory: $file_directory" 0
 }
 
 function Main()
 {
-	echo "Generating systemctl..."
-	GenerateSystemCtl
+	file_name_log="systemctl_monitoring_to_json_${current_date}.log"
+	
+	{
+		PrintMessage "Generating systemctl..." 0
+		GenerateSystemCtl
+	} 2>&1 | tee -a "$file_name_log"
 }
 
 #==========================================================#
 # RUNTIME FUNCTIONS
 #==========================================================#
 
-Main
+Main	
 
 #==========================================================#
