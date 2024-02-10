@@ -64,26 +64,49 @@ function GenerateSystemCtl()
 	
 	json_format=""
 	
+	running_index=1
+	exited_index=1
+	failed_index=1
+	dead_index=1
+	
 	while IFS= read -r line; do
 		service_name=$(echo "$line" | awk '{print $1}' | tr -dc '[:print:]\n' | sed -e 's/\\x[[:xdigit:]][[:xdigit:]]//g')
 		service_description=$(echo "$line" | awk '/running|exited|dead/ { for (i=5; i<=NF; i++) { printf "%s%s", (i > 5 ? " " : ""), $i } printf "\n" }')
 		service_status=$(echo "$line" | awk '{print $3}')
 		service_state=$(echo "$line" | awk '{print $4}')
 		
-		json_object="{\"service\":\"$service_name\",\"description\":\"$service_description\",\"status\":\"$service_status\"},"
-		
 		case $service_state in
 			"running")
-				running_array+=("$json_object")
+				json_object="{\"service\":\"$service_name\",\"description\":\"$service_description\",\"status\":\"$service_status\",\"id_number\":\"$running_index\"}"
+				final_json_object="{\"service\":$json_object},"
+				
+				running_array+=("$final_json_object")
+				
+				((running_index++))
 				;;
 			"exited")
-				exited_array+=("$json_object")
+				json_object="{\"service\":\"$service_name\",\"description\":\"$service_description\",\"status\":\"$service_status\",\"id_number\":\"$exited_index\"}"
+				final_json_object="{\"service\":$json_object},"
+				
+				exited_array+=("$final_json_object")
+				
+				((exited_index++))
 				;;
 			"failed")
-				failed_array+=("$json_object")
+				json_object="{\"service\":\"$service_name\",\"description\":\"$service_description\",\"status\":\"$service_status\",\"id_number\":\"$failed_index\"}"
+				final_json_object="{\"service\":$json_object},"
+				
+				failed_array+=("$final_json_object")
+				
+				((failed_index++))
 				;;
 			"dead")
-				dead_array+=("$json_object")
+				json_object="{\"service\":\"$service_name\",\"description\":\"$service_description\",\"status\":\"$service_status\",\"id_number\":\"$dead_index\"}"
+				final_json_object="{\"service\":$json_object},"
+				
+				dead_array+=("$final_json_object")
+				
+				((dead_index++))
 				;;
 		esac
 		
