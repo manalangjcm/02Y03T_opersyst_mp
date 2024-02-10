@@ -81,12 +81,12 @@ function TransferToRemoteServer()
 	
 	if ssh admin@$ip_address "ls $file_destination >/dev/null 2>&1" ; then
 		PrintMessage "Password for 'sudo' command is not required. Ignore this message!" 0
-		ssh admin@$ip_address "echo $password | sudo -S -n chown -R $username:$username $file_destination"
+		ssh admin@$ip_address "echo $password | sudo -S chown -R $username:$username $file_destination"
 	else
 		PrintMessage "Not existing! Creating one..." 0
 		PrintMessage "Password for 'sudo' command is not required. Ignore this message!" 0
-		ssh admin@$ip_address "echo $password | sudo -S -n mkdir $file_destination"
-		ssh admin@$ip_address "echo $password | sudo -S -n chown -R $username:$username /opt/"
+		ssh admin@$ip_address "echo $password | sudo -S mkdir $file_destination"
+		ssh admin@$ip_address "echo $password | sudo -S chown -R $username:$username /opt/"
 	fi
 	
 	sftp admin@$ip_address << @
