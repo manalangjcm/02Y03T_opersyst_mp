@@ -11,6 +11,8 @@
 
 server_password="admin"
 
+current_date=`date '+%Y%m%d_%H%M%S'`
+
 # File Names
 file_name_pattern="filesystem_*"
 
@@ -26,6 +28,28 @@ percentage_threshold=85
 # SCRIPT CONTENT
 #==========================================================#
 
+function PrintMessage()
+{
+	local message=$1
+	local log_mode=$2
+	
+	local log_level
+	
+	case $log_mode in
+		0)
+			log_level="INFO"
+			;;
+		1)
+			log_level="ERROR"
+			;;
+		2)
+			log_level="WARNING"
+			;;
+	esac
+	
+	echo -e "[`date '+%Y-%m-%d %H:%M:%S'`] [$log_level] : $message"
+}
+
 function InsertToFile()
 {
 	local value_to_insert=$1
@@ -36,11 +60,11 @@ function InsertToFile()
 
 function ConvertJSON()
 {
-	index=0
+	filesystem_utilization_length=$(jq '.filesystem_utilization | length' <<< "$converted_json_file")
 	filesystem_ctr=1
 	
-	while [[ $index -lt $(jq '.filesystem_utilization | length' <<< "$converted_json_file") ]]; do
-		current=$(jq ".filesystem_utilization[$index]" <<< "$converted_json_file")
+	for ((index=0; index<filesystem_utilization_length; index++)); do
+		current=$(jq -r --argjson index "$index" '.filesystem_utilization[$index].filesystem_details' <<< "$converted_json_file")
 		current_no=$(echo "$current" | jq -r '.filesystem_no')
 		current_name=$(echo "$current" | jq -r '.filesystem')
 		current_disk_size=$(echo "$current" | jq -r '.disk_size')
@@ -74,7 +98,7 @@ function ConvertJSON()
 			
 			InsertToFile "$converted_text_block" $file_directory_normal$file_name_normal
 			
-			echo -e "[#] Found normal filesystem with $current_disk_percentage% disk percentage. \n ► Saved to '$file_directory_normal$file_name_normal'\n"
+			PrintMessage "Successfully deserialized: Filesystem '$current_name' | Disk Percentage '$current_disk_percentage%'\n ► Filename: $file_name_normal\n ► File directory: $file_directory_normal'" 0
 		
 		# Check if disk percentage is greater than or equal to 85%
 		elif [ $current_disk_percentage -ge $percentage_threshold ]; then
@@ -89,10 +113,9 @@ function ConvertJSON()
 			
 			InsertToFile "$converted_text_block" $file_directory_critical$file_name_critical
 			
-			echo -e "[!] Found critical filesystem with $current_disk_percentage% disk percentage. \n ► Saved to '$file_directory_critical$file_name_critical'\n"
+			PrintMessage "Successfully deserialized: Filesystem '$current_name' | Disk Percentage '$current_disk_percentage%'\n ► Filename: $file_name_critical\n ► File directory: $file_directory_critical'" 0
 		fi
-		
-		((index++))
+
 		((filesystem_ctr++))
 	done
 }
@@ -101,51 +124,73 @@ function ArchiveJSON()
 {
 	# Check if /opt/json_archives/ directory exists on the server
 	if [[ ! -d $archive_directory ]]; then
-		echo "Directory '$archive_directory' does not exist!"
+		PrintMessage "Directory '$archive_directory' does not exist!" 2
+		PrintMessage "Password for 'sudo' command is not required. Ignore this message!" 0
 		echo $server_password | sudo -S chown -R admin:admin /opt/
 		echo $server_password | sudo -S mkdir $archive_directory
 		echo $server_password | sudo -S mv $file_latest $archive_directory
 	fi
 	
-	echo "Directory '$archive_directory' exists! Archiving..."
+	PrintMessage "Directory '$archive_directory' exists! Archiving..." 0
+	PrintMessage "Password for 'sudo' command is not required. Ignore this message!" 0
 	echo $server_password | sudo -S mv $file_latest $archive_directory
-	echo "Successfully archived JSON file to '$archive_directory'"
+	PrintMessage "Successfully archived JSON file to '$archive_directory'" 0
 }
 
 function CheckExternalLibraries()
 {
 	# Check if SSHPASS is installed on the server
 	if ! command -v sshpass &> /dev/null; then
-		echo "SSHPASS not installed! Installing..."
+		PrintMessage "SSHPASS not installed! Installing..." 0
 		sudo install -y sshpass
 	else
-		echo "SSHPASS already installed!"
+		PrintMessage "SSHPASS already installed!" 0
+	fi
+}
+
+function DeleteOldFiles()
+{
+	# Check for old files inside /opt/json_archives
+	PrintMessage "Deleting files older than 15 days under $archive_directory..." 0
+	if [[ $(find $archive_directory -type f -mtime +6) ]]; then
+		PrintMessage "Files older than 15 days found under '$archive_directory'. Deleting..." 0
+		find $archive_directory -type f -mtime +15 -exec rm {} \;
+		PrintMessage "Successfully deleted older files under '$archive_directory'!" 0
+	else
+		PrintMessage "No files older than 15 days found under '$archive_directory'. Skipping deletion..." 0
 	fi
 }
 
 function Main()
 {
-	# Check for external libraries needed for the script
-	CheckExternalLibraries
+	file_name_log="filesystem_json_conversion_${current_date}.log"
 	
-	# Check if a latest filesystem utilization JSON file can be found under /opt/filesystem/
-	if [ -n "$(ls -A "$filesystem_directory"/$file_name_pattern 2>/dev/null)" ]; then
-		file_latest=$(ls -t1 "$filesystem_directory"/$file_name_pattern | head -n 1)
-		converted_json_file=$(<$file_latest)
+	{
+		# Check for external libraries needed for the script
+		CheckExternalLibraries
 		
-		echo "Latest JSON file found '$file_latest'"
+		# Delete files older than 15 days
+		DeleteOldFiles
 		
-		# Convert the JSON file
-		echo "Converting JSON..."
-		ConvertJSON
-		echo "Successfully converted JSON!"
-		
-		# Archive the JSON file to /opt/json_archives/
-		echo "Archiving JSON to '$archive_directory'"
-		ArchiveJSON
-	else
-		echo "No JSON file found under directory '$filesystem_directory'"
-	fi
+		# Check if a latest filesystem utilization JSON file can be found under /opt/filesystem/
+		if [ -n "$(ls -A "$filesystem_directory"/$file_name_pattern 2>/dev/null)" ]; then
+			file_latest=$(ls -t1 "$filesystem_directory"/$file_name_pattern | head -n 1)
+			converted_json_file=$(<$file_latest)
+			
+			PrintMessage "Latest JSON file found '$file_latest'" 0
+			
+			# Convert the JSON file
+			PrintMessage "Converting JSON..." 0
+			ConvertJSON
+			PrintMessage "Successfully converted JSON!" 0
+			
+			# Archive the JSON file to /opt/json_archives/
+			PrintMessage "Archiving JSON to '$archive_directory'" 0
+			ArchiveJSON
+		else
+			PrintMessage "No JSON file found under directory '$filesystem_directory'" 1
+		fi
+	} 2>&1 | tee -a "$file_name_log"
 }
 
 #==========================================================#
