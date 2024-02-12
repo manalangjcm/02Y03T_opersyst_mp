@@ -11,10 +11,8 @@ set -e
 # VARIABLES
 #==========================================================#
 
-current_date=`date '+%Y%m%d_%H%M%S'`
-
-ip_server02=$(echo `hostname -I`)
-
+current_date=$(date '+%Y%m%d_%H%M%S')
+ip_server02=$(hostname -I)
 email_address="dummystain@gmail.com"
 email_subject="[FAILED] ALMALINUX SERVER SERVICES"
 
