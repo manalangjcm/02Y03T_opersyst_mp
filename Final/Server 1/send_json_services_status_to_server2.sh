@@ -95,9 +95,9 @@ function TransferToRemoteServer()
 	
 	# Check if '/opt/services' exists on Server 2. If yes, change directory owner to root. If not, create one.
 	# The script uses auto password for sudo commands. Ignore any sudo printed messages asking for input.
-	if ssh $username@$ip_address "ls $file_destination >/dev/null 2>&1" ; then
+	if ssh "$username@$ip_address" "ls $file_destination >/dev/null 2>&1" ; then
 		PrintMessage "Password for 'sudo' command is not required. Ignore this message!" 0
-		ssh $username@$ip_address "echo $password | sudo -S chown -R $username:$username $file_destination"
+		ssh "$username@$ip_address" "echo $password | sudo -S chown -R $username:$username $file_destination"
 		# Check if command above works.
 		if [ $? -ne 0 ]; then
 			PrintMessage "There's a possibility that the password '$password' for Server 02 was incorrect or not valid! Terminating the script..." 1
@@ -106,13 +106,13 @@ function TransferToRemoteServer()
 	else
 		PrintMessage "Not existing! Creating one..." 0
 		PrintMessage "Password for 'sudo' command is not required. Ignore this message!" 0
-		ssh $username@$ip_address "echo $password | sudo -S mkdir $file_destination"
+		ssh "$username@$ip_address" "echo $password | sudo -S mkdir $file_destination"
 		# Check if command above works.
 		if [ $? -ne 0 ]; then
 			PrintMessage "There's a possibility that the password '$password' for Server 02 was incorrect or not valid! Terminating the script..." 1
 			exit
 		fi
-		ssh $username@$ip_address "echo $password | sudo -S chown -R $username:$username /opt/"
+		ssh "$username@$ip_address" "echo $password | sudo -S chown -R $username:$username /opt/"
 		# Check if command above works.
 		if [ $? -ne 0 ]; then
 			PrintMessage "There's a possibility that the password '$password' for Server 02 was incorrect or not valid! Terminating the script..." 1
@@ -121,7 +121,7 @@ function TransferToRemoteServer()
 	fi
 	
 	# Upload file to Server 2.
-	sftp $username@$ip_address << EOF
+	sftp "$username@$ip_address" << EOF
 		put -R $file_latest $file_destination
 		quit
 EOF
