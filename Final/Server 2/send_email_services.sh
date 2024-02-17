@@ -88,10 +88,9 @@ EOF
 	
 	# Send email.
 	local send_mail_command=$(echo "$email_body_text" | mail -v -s "$email_subject" "$email_address")
-	local exit_status=$?
 	
 	# Check if command for sending mail was executed successfully
-	if [ "$exit_status" -ne 0 ]; then
+	if [ $? -ne 0 ]; then
 		PrintMessage "Failed to send email to '$email_address'! Terminating the script..." 1
 		exit
 	else
@@ -115,6 +114,27 @@ function Main()
 				formatted_file_latest=$(<$file_latest)
 				
 				PrintMessage "File '$file_latest' has failed services!" 0
+				
+				# Check if email address is null or empty.
+				if [[ "$email_address" == "" || -z "$email_address" ]]; then
+					PrintMessage "Email address is null or empty! Terminating the script..." 1
+					exit
+				fi
+				
+				# Check if email address is valid.
+				if echo "$email_address" | grep -P "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" >/dev/null; then
+					# Check if email address' domain is valid.
+					local email_domain=$(echo "$email_address" | awk -F'@' '{print $2}')
+					if nslookup "$email_domain" >/dev/null; then
+						PrintMessage "Email address '$email_address' & domain '$email_domain' is valid or is active!" 0
+					else
+						PrintMessage "Email address '$email_address' & domain '$email_domain' is not valid or is inactive! Terminating the script..." 1
+						exit
+					fi
+				else
+					PrintMessage "Email address '$email_address' is not valid! Terminating the script..." 1
+					exit
+				fi
 				
 				SendEmail
 			else
