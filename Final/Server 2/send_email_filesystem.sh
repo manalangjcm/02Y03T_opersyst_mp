@@ -17,7 +17,7 @@ current_date_log=$(date '+%Y%m%d%H%M%S')
 # Authentication
 ip_server02=$(echo `hostname -I`)
 
-email_address=""
+email_address="dummystain@gmail.com"
 email_subject="[CRITICAL] ALMALINUX SERVER FILESYSTEM"
 
 # File Names
@@ -116,6 +116,21 @@ function Main()
 			# Check if email address is null or empty.
 			if [[ "$email_address" == "" || -z "$email_address" ]]; then
 				PrintMessage "Email address is null or empty! Terminating the script..." 1
+				exit
+			fi
+			
+			# Check if email address is valid.
+			if echo "$email_address" | grep -P "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" >/dev/null; then
+				# Check if email address' domain is valid.
+				local email_domain=$(echo "$email_address" | awk -F'@' '{print $2}')
+				if nslookup "$email_domain" >/dev/null; then
+					PrintMessage "Email address '$email_address' & domain '$email_domain' is valid or is active!" 0
+				else
+					PrintMessage "Email address '$email_address' & domain '$email_domain' is not valid or is inactive! Terminating the script..." 1
+					exit
+				fi
+			else
+				PrintMessage "Email address '$email_address' is not valid! Terminating the script..." 1
 				exit
 			fi
 			
