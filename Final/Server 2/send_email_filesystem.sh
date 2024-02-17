@@ -12,15 +12,16 @@
 #==========================================================#
 
 current_date=$(date '+%Y%m%d_%H%M%S')
+current_date_log=$(date '+%Y%m%d%H%M%S')
 
 # Authentication
 ip_server02=$(echo `hostname -I`)
 
-email_address="dummystain@gmail.com"
+email_address=""
 email_subject="[CRITICAL] ALMALINUX SERVER FILESYSTEM"
 
 # File Names
-file_name_log="send_email_filesystem_${current_date}.log"
+file_name_log="send_email_filesystem_${current_date_log}.log"
 
 # File Directories
 filesystem_directory_critical="/opt/filesystem/critical/"
@@ -93,11 +94,10 @@ EOF
 	PrintMessage "Sending email to '$email_address'..." 0
 	
 	# Send email.
-	local send_mail_command=$(echo "$email_body_text" | mail -v -s "$email_subject" "$email_address")
-	local exit_status=$?
+	send_mail_command=$(echo "$email_body_text" | mail -v -s "$email_subject" "$email_address")
 	
 	# Check if command for sending mail was executed successfully
-	if [ "$exit_status" -ne 0 ]; then
+	if [ $? -ne 0 ]; then
 		PrintMessage "Failed to send email to '$email_address'! Terminating the script..." 1
 		exit
 	else
@@ -112,6 +112,13 @@ function Main()
 		if [ -n "$(ls -A "$filesystem_directory_critical"/*.csv 2>/dev/null)" ]; then
 			PrintMessage "Critical filesystems found under '$filesystem_directory_critical'!" 0
 			PrintMessage "Processing critical filesystem files for emailing..." 0
+			
+			# Check if email address is null or empty.
+			if [[ "$email_address" == "" || -z "$email_address" ]]; then
+				PrintMessage "Email address is null or empty! Terminating the script..." 1
+				exit
+			fi
+			
 			SendEmail
 		else
 			PrintMessage "No critical filesystems found under '$filesystem_directory_critical'! Terminating the script..." 1
