@@ -12,13 +12,15 @@
 #==========================================================#
 
 current_date=$(date '+%Y%m%d_%H%M%S')
+current_date_log=$(date '+%Y%m%d%H%M%S')
+
 ip_server02=$(hostname -I)
 email_address="dummystain@gmail.com"
 email_subject="[FAILED] ALMALINUX SERVER SERVICES"
 
 # File Names
 file_name_pattern="services_*.csv"
-file_name_log="send_email_services_${current_date}.log"
+file_name_log="send_email_services_${current_date_log}.log"
 
 # File Directories
 filesystem_directory_inactive="/opt/services/inactive/"
