@@ -12,6 +12,7 @@
 #==========================================================#
 
 current_date=$(date '+%Y%m%d_%H%M%S')
+current_date_log=$(date '+%Y%m%d%H%M%S')
 
 # Authentication
 username_server02="admin"
@@ -20,7 +21,7 @@ password_server02="admin"
 
 # File Names
 file_name_pattern="services*"
-file_name_log="send_json_services_status_to_server2_${current_date}.log"
+file_name_log="send_json_services_status_to_server2_${current_date_log}.log"
 
 # File Directories
 tmp_directory="/tmp"
