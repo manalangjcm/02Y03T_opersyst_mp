@@ -5,6 +5,8 @@
 # IT-222
 #//////////////////////////////////////////////////////////#
 
+# Script: filesystem_util_to_json.sh
+
 #==========================================================#
 # VARIABLES
 #==========================================================#
@@ -61,7 +63,7 @@ function GenerateFileSystemUtilization()
 		current_directory=$(echo "$line" | awk '{print $6}' | tr -dc '[:print:]\n' | sed -e 's/\\x[[:xdigit:]][[:xdigit:]]//g')
 		
 		# Format variables to JSON
-		local json_object="{\"filesystem_no\":\"$filesystem_no\",\"filesystem\":\"$current_filesystem\",\"disk_size\":\"$current_disk_size\",\"disk_used\":\"$current_disk_used\",\"disk_available\":\"$current_disk_size\",\"disk_used_pct\":\"$current_disk_used_pct\",\"directory\":\"$current_directory\"}"
+		local json_object="{\"filesystem_no\":\"$filesystem_no\",\"filesystem\":\"$current_filesystem\",\"disk_size\":\"$current_disk_size\",\"disk_used\":\"$current_disk_used\",\"disk_available\":\"$current_disk_available\",\"disk_used_pct\":\"$current_disk_used_pct\",\"directory\":\"$current_directory\"}"
 		local final_json_object="{\"filesystem_details\":$json_object},"
 		
 		filesystem_array+=("$final_json_object")
