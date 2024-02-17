@@ -12,6 +12,7 @@
 #==========================================================#
 
 current_date=$(date '+%Y%m%d_%H%M%S')
+current_date_log=$(date '+%Y%m%d%H%M%S')
 
 # Authentication
 server_password="admin"
@@ -20,7 +21,7 @@ server_password="admin"
 file_name_pattern="services_*"
 file_name_active="services_active_${current_date}.txt"
 file_name_inactive="services_inactive_${current_date}.csv"
-file_name_log="services_json_conversion_${current_date}.log"
+file_name_log="services_json_conversion_${current_date_log}.log"
 
 # File Directories
 services_directory="/opt/services"
