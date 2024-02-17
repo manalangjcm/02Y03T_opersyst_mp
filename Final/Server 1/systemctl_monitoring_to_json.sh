@@ -12,10 +12,11 @@
 #==========================================================#
 
 current_date=$(date '+%Y%m%d_%H%M%S')
+current_date_log=$(date '+%Y%m%d%H%M%S')
 
 # File Names
 file_name="services_${current_date}.json"
-file_name_log="systemctl_monitoring_to_json_${current_date}.log"
+file_name_log="systemctl_monitoring_to_json_${current_date_log}.log"
 
 # File Directories
 file_directory="/tmp/"
