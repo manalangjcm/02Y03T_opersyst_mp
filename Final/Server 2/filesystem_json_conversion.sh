@@ -12,13 +12,14 @@
 #==========================================================#
 
 current_date=$(date '+%Y%m%d_%H%M%S')
+current_date_log=$(date '+%Y%m%d%H%M%S')
 
 # Authentication
 server_password="admin"
 
 # File Names
 file_name_pattern="filesystem_*"
-file_name_log="filesystem_json_conversion_${current_date}.log"
+file_name_log="filesystem_json_conversion_${current_date_log}.log"
 
 # File Directories
 filesystem_directory="/opt/filesystem"
